@@ -1,0 +1,33 @@
+name: Update Fund Values
+
+on:
+  schedule:
+    # 每天北京时间晚上 8 点运行 (UTC 时间 12:00)
+    # cron 表达式格式：分 时 日 月 周 (均为 UTC 时间)
+    - cron: '0 12 * * *'
+  workflow_dispatch: # 允许你手动点击按钮触发运行
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v3
+
+      - name: 设置 Python 环境
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: 执行 Python 脚本
+        env:
+          # 将刚才配置的 Secrets 映射给脚本使用
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
+        run: python main.py
