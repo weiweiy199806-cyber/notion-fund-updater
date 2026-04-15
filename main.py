@@ -53,9 +53,9 @@ def get_fund_value(code: str):
         return None
 
 
-def find_page_id_by_code(code: str):
+def find_page_ids_by_code(code: str):
     """
-    在 Notion 数据库中根据“基金代码”查找对应页面
+    在 Notion 数据库中查找所有匹配“基金代码”的页面 ID
     """
     url = f"https://api.notion.com/v1/databases/{DATABASE_ID}/query"
     payload = {
@@ -70,9 +70,10 @@ def find_page_id_by_code(code: str):
     resp.raise_for_status()
     data = resp.json()
     results = data.get("results", [])
-    if not results:
-        return None
-    return results[0]["id"]
+    
+    # 修复点：提取所有匹配的 ID，存入列表返回
+    page_ids = [page["id"] for page in results]
+    return page_ids
 
 
 def create_page_for_fund(fund_info):
@@ -154,26 +155,30 @@ def main():
         print("错误：找不到 funds.json 文件。")
         return
 
-    for code in fund_codes:
+   for code in fund_codes:
         print(f"\n[INFO] 正在处理: {code}")
         
-        # 1. 获取最新数据
         fund_info = get_fund_value(code)
         if not fund_info:
             print(f"[SKIP] 无法获取基金 {code} 的数据，跳过")
             continue
 
-        # 2. 查找并更新/创建
         try:
-            page_id = find_page_id_by_code(code)
-            if page_id:
-                update_page_for_fund(page_id, fund_info)
+            # 1. 获取所有匹配的页面 ID 列表
+            page_ids = find_page_ids_by_code(code)
+            
+            if page_ids:
+                # 2. 修复点：如果有多个页面，循环更新每一个
+                print(f"[INFO] 发现 {len(page_ids)} 条记录，正在同步更新...")
+                for pid in page_ids:
+                    update_page_for_fund(pid, fund_info)
             else:
+                # 3. 如果一条记录都没有，则新建
                 create_page_for_fund(fund_info)
+                
         except Exception as e:
             print(f"[ERROR] Notion 操作失败 ({code}): {e}")
         
-        # 稍微停顿，避免请求过快
         time.sleep(0.5)
 
 
