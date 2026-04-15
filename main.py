@@ -154,8 +154,7 @@ def main():
     except FileNotFoundError:
         print("错误：找不到 funds.json 文件。")
         return
-
-   for code in fund_codes:
+    for code in fund_codes:
         print(f"\n[INFO] 正在处理: {code}")
         
         fund_info = get_fund_value(code)
